@@ -8,9 +8,8 @@ class MainApplication(ctk.CTk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.title("Hobi Pazarı")
-        self.geometry("1000x680")
 
-        self.center_window()
+        self.center_window(1000, 800)
 
         self.login_screen = LoginScreen(self, self.show_homepage)
         self.login_screen.pack()
@@ -37,7 +36,7 @@ class LoginScreen(ctk.CTkFrame):
         super().__init__(parent, *args, **kwargs)
         self.on_login_success = on_login_success
 
-        mainlabel = ctk.CTkLabel(self, text="Hobi Pazarı", font=("Helvetice", 30, "bold"))
+        mainlabel = ctk.CTkLabel(self, text="Hobi Pazarı", font=("Helvetica", 30, "bold"))
         mainlabel.pack(pady=(50, 20), padx=(100,100))
 
         self.username_entry = ctk.CTkEntry(self, placeholder_text="Kullanıcı Adı")
@@ -46,14 +45,19 @@ class LoginScreen(ctk.CTkFrame):
         self.password_entry = ctk.CTkEntry(self, show="*", placeholder_text="Şifre")
         self.password_entry.pack(pady=(0, 20))
 
-        login_button = ctk.CTkButton(self, text="Login", command=self.on_login_click)
-        login_button.pack(pady=(0, 100))
+        self.hata_label = ctk.CTkLabel(self, text="", font=("Helvetica", 12), text_color="#FF0000")
+        self.hata_label.pack(pady=(0,20))
 
-    def on_login_click(self):
+        login_button = ctk.CTkButton(self, text="Login",  command=lambda: self.on_login_click(self.hata_label))
+        login_button.pack(pady=(0, 50))
+
+    def on_login_click(self, hata):
         # Here, add the actual login logic
-        print(f"Username: {self.username_entry.get()}")
-        print(f"Password: {self.password_entry.get()}")
         self.on_login_success()  # Call the method to switch to the homepage
+        # if self.username_entry.get() == "admin" and self.password_entry.get() == "admin":
+        #     self.on_login_success()  # Call the method to switch to the homepage
+        # else:
+        #     hata.configure(text="Geçersiz Kullanıcı Adı ve Şifre")
 
 class Homepage(ctk.CTkFrame):
     def __init__(self, parent, *args, **kwargs):
@@ -68,8 +72,9 @@ class Homepage(ctk.CTkFrame):
         # Scrollable container setup
         product_boxes = ctk.CTkScrollableFrame(self, 
                                                border_width=1, 
-                                               border_color="#FFFFFF", 
-                                               width=500,
+                                               border_color="#242424", 
+                                               height=300,
+                                               width=300,
                                                label_text="Ürünler",
                                                label_anchor="center",
                                                label_font=("Helvetica", 20, "bold"))
@@ -91,26 +96,24 @@ class Homepage(ctk.CTkFrame):
         for i, product in enumerate(products):
             ProductBox(product_boxes, product['name'], product['info'], product['price'], self.update_sepet_label).pack(pady=10)
 
-
-        def open_sepet():
-            print("sepet açıldı")
-
-            # new_window = ctk.CTkToplevel(self)
-            # new_window.title("Sepet")
-            # new_window.geometry("500x200")
-            
-            # for product_name in self.product_list:
-            #     ctk.CTkLabel(self, text=product_name).pack()
-
-            # # Close button
-            # close_button = ctk.CTkButton(self, text="Close", command=self.destroy)
-            # close_button.pack(pady=10)
-
-
         self.counter = 0
         self.product_list = []
-        self.sepet = ctk.CTkButton(self, text="Sepet", command=open_sepet)
+        self.sepet = ctk.CTkButton(self, text="Sepet", command=self.open_sepet)
         self.sepet.pack(pady=10, padx=10, side="right")
+
+    def open_sepet():
+        print("sepet açıldı")
+
+        # new_window = ctk.CTkToplevel(self)
+        # new_window.title("Sepet")
+        # new_window.geometry("500x200")
+        
+        # for product_name in self.product_list:
+        #     ctk.CTkLabel(self, text=product_name).pack()
+
+        # # Close button
+        # close_button = ctk.CTkButton(self, text="Close", command=self.destroy)
+        # close_button.pack(pady=10)
 
     def update_sepet_label(self, product_id):
         self.counter += 1
@@ -130,9 +133,9 @@ class ProductBox(ctk.CTkFrame):
         self.pack_propagate(False)  # Prevents the frame from shrinking to fit its contents
         self.configure(width=200, height=200)  # Set the size for each product box
 
-        ctk.CTkLabel(self, text=product_name, font=("Helvetice", 14, "bold")).pack(pady=(10, 5))
-        ctk.CTkLabel(self, text=information, font=("Helvetice", 10)).pack(pady=(0, 5))
-        ctk.CTkLabel(self, text=f"Price: {price}", font=("Helvetice", 12, "bold")).pack(pady=(5, 10))
+        ctk.CTkLabel(self, text=product_name, font=("Helvetica", 14, "bold")).pack(pady=(10, 5))
+        ctk.CTkLabel(self, text=information, font=("Helvetica", 10)).pack(pady=(0, 5))
+        ctk.CTkLabel(self, text=f"Price: {price}", font=("Helvetica", 12, "bold")).pack(pady=(5, 10))
         ctk.CTkButton(self, text="Add to Basket", command=self.add_to_basket).pack(pady=(0, 10))
         ctk.CTkButton(self, text="Yorumlıar", bg_color="transparent").pack(pady=(0, 10))
 

@@ -4,11 +4,14 @@ from tkcalendar import Calendar
 from datetime import datetime, timedelta
 import psycopg2
 
-# conn = psycopg2.connect(host = "localhost", port = "5432", database = "hobby_db", user = "postgres", password = "husam")
-# cur = conn.cursor()
+conn = psycopg2.connect(host = "localhost", port = "5432", database = "hobby_db", user = "postgres", password = "123")
+cur = conn.cursor()
+
+global_username = ""
 
 ctk.deactivate_automatic_dpi_awareness()
 ctk.set_widget_scaling(1.3)
+
 
 class MainApplication(ctk.CTk):
     def __init__(self, *args, **kwargs):
@@ -73,14 +76,23 @@ class LoginScreen(ctk.CTkFrame):
 
     def on_login_click(self, hata):
         # Here, add the actual login logic
-        self.on_login_success()  # Call the method to switch to the homepage
-        # if self.username_entry.get() == "admin" and self.password_entry.get() == "admin":
-        #     self.on_login_success()  # Call the method to switch to the homepage
-        # else:
-        #     hata.configure(text="Geçersiz Kullanıcı Adı ve Şifre")
+        global global_username
+        username = self.username_entry.get()
+        password = self.password_entry.get()
+        
+        cur.execute(""" SELECT username, password FROM users 
+                        WHERE username = %s AND password = %s""", (username,password))
+        
+        info = cur.fetchone()
+        
+        print(info)
+        if info == None:
+            hata.configure(text="Geçersiz Kullanıcı Adı veya Şifre")
+        else:
+            global_username = username
+            self.on_login_success()  # Call the method to switch to the homepage
 
-        # cur.execute(""" SELECT username, password FROM users 
-        #             WHERE username = %s AND password = %s""", (self.username_entry.get(),self.password_entry.get()))
+
 
 class register(ctk.CTkToplevel):
     def __init__(self, parent, *args, **kwargs):
@@ -97,7 +109,7 @@ class register(ctk.CTkToplevel):
         # Set the window's position
         self.geometry(f'{width}x{height}+{x}+{y}')
 
-        mainlabel = ctk.CTkLabel(self, text="Kayıt Ol", font=("Helvetica", 30, "bold"))
+        mainlabel = ctk.CTkLabel(self, text="Kaydol", font=("Helvetica", 30, "bold"))
         mainlabel.pack(pady=(10, 20))
         
         self.username_entry = ctk.CTkEntry(self, placeholder_text="Kullanıcı Adınız")
@@ -172,23 +184,30 @@ class register(ctk.CTkToplevel):
 
         # Eğer tüm alanlar doluysa, bilgileri yazdır
 
-        # TODO buraya SQL sorgusu gelecek. 
-        print("Kullanıcı Adı:", username)
-        print("Şifre:", password)
-        print("Ad:", name)
-        print("Soyad:", surname)
-        print("E-posta:", mail)
-        print("Telefon:", phone)
-        print("Adres:", address)
-        print("Doğum Tarihi:", selected_date)
+        # DONE buraya SQL sorgusu geldi.
+        query = """INSERT INTO users VALUES (DEFAULT, 
+                                                %s, 
+                                                %s, 
+                                                %s, 
+                                                %s, 
+                                                %s, 
+                                                %s, 
+                                                %s, 
+                                                %s) """
+        
+        record = (username,password,name,surname,selected_date,mail,phone,address)
+
+        cur.execute(query,record)
+        conn.commit()
 
         self.destroy()
 
 class Homepage(ctk.CTkFrame):
     def __init__(self, parent, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
-
-        user_name = ctk.CTkLabel(self, width=100, text="Kullanıcı Adı", font=("Helvetica", 20, "bold"))
+        global global_username
+        
+        user_name = ctk.CTkLabel(self, width=100, text="Hoşgeldin " + global_username, font=("Helvetica", 20, "bold"))
         user_name.pack(pady=10)
 
         search_bar = ctk.CTkEntry(self, width=200, placeholder_text="Ara")
@@ -287,7 +306,7 @@ class sepet_window(ctk.CTkToplevel):
     def buy_products(self):
         # TODO burada alışveriş tamamlanınca onun satın alınanlar listesine eklenmesi gerek.
         # SQL sorgusu buraya gelecek muhtemelen.
-        print("Buyed Products")
+        print("Bought Products") 
 
 class satin_alinan_window(ctk.CTkToplevel):
     def __init__(self, parent, *args, **kwargs):
@@ -320,7 +339,7 @@ class satin_alinan_window(ctk.CTkToplevel):
         buy_button.pack(pady=10, padx=10, side="bottom")
                 
 class ProductBox(ctk.CTkFrame):
-    def __init__(self, parent, product_name, information, price, update_sepet_label, *args, **kwargs):
+    def __init__(self, parent, product_name, information, price, category, update_sepet_label, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.update_sepet_label = update_sepet_label
 

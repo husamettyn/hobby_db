@@ -8,6 +8,7 @@ conn = psycopg2.connect(host = "localhost", port = "5432", database = "hobby_db"
 cur = conn.cursor()
 
 global_username = ""
+global_userid = 0
 
 ctk.deactivate_automatic_dpi_awareness()
 ctk.set_widget_scaling(1.3)
@@ -36,9 +37,88 @@ class MainApplication(ctk.CTk):
         self.geometry(f'{width}x{height}+{x}+{y}')
 
     def show_homepage(self):
-        self.login_screen.pack_forget()  # Hide the login screen
         self.homepage = Homepage(self)
         self.homepage.pack()
+        self.login_screen.destroy()
+
+class Homepage(ctk.CTkFrame):
+    def __init__(self, parent, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+        global global_username
+        
+        user_name = ctk.CTkLabel(self, width=100, text="Hoşgeldin " + global_username, font=("Helvetica", 20, "bold"))
+        user_name.pack(pady=10)
+
+        search_bar = ctk.CTkEntry(self, width=200, placeholder_text="Ara")
+        search_bar.pack(pady=10)
+
+        # Scrollable container setup
+        product_boxes = ctk.CTkScrollableFrame(self, 
+                                               border_width=1, 
+                                               border_color="#242424", 
+                                               height=350,
+                                               width=300,
+                                               label_text="Ürünler",
+                                               label_anchor="center",
+                                               label_font=("Helvetica", 20, "bold"))
+        product_boxes.pack(pady=10, padx=20)
+
+        # Example product data - you would load this from a database or some other data source
+        cur.execute(""" SELECT * FROM products""")
+        product_table = cur.fetchall()
+        
+        # Add product boxes to the grid
+        for product in product_table:
+            ProductBox(product_boxes, product[0], product[2], product[3], product[5], product[4], product[6], product[1], self.update_sepet_label).pack(pady=10)
+                                      #product_id, product_name, information, price, category, stock, seller_id,
+
+        self.counter = 0
+        self.product_list = []
+        
+        self.sepet_hata = ctk.CTkLabel(self, text="", text_color="#FF0000").pack()
+        
+        self.sepet = ctk.CTkButton(self, text="Sepet", command=self.open_sepet)
+        self.sepet.pack(pady=10, padx=10, side="right")
+        
+        self.satin_alinan = ctk.CTkButton(self, text="Satın Alınanlar", command=self.open_satin_alinanlar)
+        self.satin_alinan.pack(pady=10, padx=10, side="left")
+        
+        self.sepet_win = None
+        self.satin_alinan_win = None
+
+    def open_satin_alinanlar(self):
+        if self.sepet_win is None or not self.sepet_win.winfo_exists():
+            self.sepet_win = satin_alinan_window(self)  # create window if its None or destroyed
+            self.sepet_win.focus_set()  # Yeni pencereye odaklanmayı zorla
+            self.sepet_win.grab_set()
+            self.wait_window(self.sepet_win)
+        else:
+            self.sepet_win.focus()  # if window exists focus it
+    
+    def open_sepet(self):
+        if self.product_list == []:
+            self.sepet.configure(text="Sepetiniz Boş")
+            
+        else:
+            if self.sepet_win is None or not self.sepet_win.winfo_exists():
+                self.sepet_win = sepet_window(self, self.product_list, self.refresh_homepage)
+                self.sepet_win.focus_set() 
+                self.sepet_win.grab_set()
+                self.wait_window(self.sepet_win)
+            else:
+                self.sepet_win.focus()
+
+    def update_sepet_label(self, product):
+        self.counter += 1
+        self.product_list.append(product)
+        self.sepet.configure(text=f"Sepet: {self.counter}")
+        # basılan tuştan gelen veriye göre product isimleri bir listede saklanmalı
+        
+    def refresh_homepage(self):
+        # Ürün listesini ve sepet sayacını sıfırla
+        self.product_list = []
+        self.counter = 0
+        self.sepet.configure(text="Sepet")
 
 class LoginScreen(ctk.CTkFrame):
     def __init__(self, parent, on_login_success, *args, **kwargs):
@@ -54,15 +134,16 @@ class LoginScreen(ctk.CTkFrame):
         self.password_entry = ctk.CTkEntry(self, show="*", placeholder_text="Şifre")
         self.password_entry.pack(pady=(0, 10))
 
-        self.hata_label = ctk.CTkLabel(self, text="", font=("Helvetica", 12), text_color="#FF0000")
-        self.hata_label.pack(pady=(0,10))
 
         login_button = ctk.CTkButton(self, text="Giriş Yap",  command=lambda: self.on_login_click(self.hata_label))
         login_button.pack()
 
-        register_button = ctk.CTkButton(self, text="Üye Ol", fg_color="transparent", border_color="#FFFFFF", border_width=2, command=self.on_register_click)
+        register_button = ctk.CTkButton(self, text="Kaydol", fg_color="transparent", border_color="#565b5e", border_width=2, command=self.on_register_click)
         register_button.pack(pady=(20, 20))
 
+        self.hata_label = ctk.CTkLabel(self, text="", font=("Helvetica", 12), text_color="#FF0000")
+        self.hata_label.pack(pady=(0,10))
+        
         self.register_window = None
 
     def on_register_click(self):
@@ -77,10 +158,11 @@ class LoginScreen(ctk.CTkFrame):
     def on_login_click(self, hata):
         # Here, add the actual login logic
         global global_username
+        global global_userid
         username = self.username_entry.get()
         password = self.password_entry.get()
         
-        cur.execute(""" SELECT username, password FROM users 
+        cur.execute(""" SELECT username, password, userid FROM users 
                         WHERE username = %s AND password = %s""", (username,password))
         
         info = cur.fetchone()
@@ -90,9 +172,8 @@ class LoginScreen(ctk.CTkFrame):
             hata.configure(text="Geçersiz Kullanıcı Adı veya Şifre")
         else:
             global_username = username
+            global_userid = info[2]
             self.on_login_success()  # Call the method to switch to the homepage
-
-
 
 class register(ctk.CTkToplevel):
     def __init__(self, parent, *args, **kwargs):
@@ -201,92 +282,12 @@ class register(ctk.CTkToplevel):
         conn.commit()
 
         self.destroy()
-
-class Homepage(ctk.CTkFrame):
-    def __init__(self, parent, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
-        global global_username
         
-        user_name = ctk.CTkLabel(self, width=100, text="Hoşgeldin " + global_username, font=("Helvetica", 20, "bold"))
-        user_name.pack(pady=10)
-
-        search_bar = ctk.CTkEntry(self, width=200, placeholder_text="Ara")
-        search_bar.pack(pady=10)
-
-        # Scrollable container setup
-        product_boxes = ctk.CTkScrollableFrame(self, 
-                                               border_width=1, 
-                                               border_color="#242424", 
-                                               height=350,
-                                               width=300,
-                                               label_text="Ürünler",
-                                               label_anchor="center",
-                                               label_font=("Helvetica", 20, "bold"))
-        product_boxes.pack(pady=10, padx=20)
-
-        # Example product data - you would load this from a database or some other data source
-        products = [
-            {"name": "Product 1", "info": "Info 1", "price": "10$"},
-            {"name": "Product 2", "info": "Info 2", "price": "20$"},
-            {"name": "Product 1", "info": "Info 1", "price": "10$"},
-            {"name": "Product 2", "info": "Info 2", "price": "20$"},
-            {"name": "Product 1", "info": "Info 1", "price": "10$"},
-            {"name": "Product 2", "info": "Info 2", "price": "20$"},
-            {"name": "Product 1", "info": "Info 1", "price": "10$"},
-            {"name": "Product 2", "info": "Info 2", "price": "20$"},
-        ]
-
-        # Add product boxes to the grid
-        for product in products:
-            ProductBox(product_boxes, product['name'], product['info'], product['price'], self.update_sepet_label).pack(pady=10)
-
-        self.counter = 0
-        self.product_list = []
-        
-        self.sepet_hata = ctk.CTkLabel(self, text="", text_color="#FF0000")
-        
-        self.sepet = ctk.CTkButton(self, text="Sepet", command=self.open_sepet)
-        self.sepet.pack(pady=10, padx=10, side="right")
-        
-        self.sepet = ctk.CTkButton(self, text="Satın Alınanlar", command=self.open_satin_alinanlar)
-        self.sepet.pack(pady=10, padx=10, side="left")
-        
-        self.sepet_win = None
-        self.satin_alinan_win = None
-
-    def open_satin_alinanlar(self):
-        if self.sepet_win is None or not self.sepet_win.winfo_exists():
-            self.sepet_win = satin_alinan_window(self)  # create window if its None or destroyed
-            self.sepet_win.focus_set()  # Yeni pencereye odaklanmayı zorla
-            self.sepet_win.grab_set()
-            self.wait_window(self.sepet_win)
-        else:
-            self.sepet_win.focus()  # if window exists focus it
-    
-    def open_sepet(self):
-        if self.product_list == []:
-            self.sepet_hata.configure(text="Sepetiniz Boş")
-        else:
-            if self.sepet_win is None or not self.sepet_win.winfo_exists():
-                self.sepet_win = sepet_window(self, self.product_list)  # create window if its None or destroyed
-                self.sepet_win.focus_set()  # Yeni pencereye odaklanmayı zorla
-                self.sepet_win.grab_set()
-                self.wait_window(self.sepet_win)
-            else:
-                self.sepet_win.focus()  # if window exists focus it
-
-    def update_sepet_label(self, product_id):
-        self.counter += 1
-        self.product_list.append(product_id)
-        self.sepet.configure(text=f"Sepet: {self.counter}")
-        # basılan tuştan gelen veriye göre product isimleri bir listede saklanmalı
-
 # yorumlar kısmını eklemek lazım.
-        
 class sepet_window(ctk.CTkToplevel):
-    def __init__(self, parent, product_list, *args, **kwargs):
+    def __init__(self, parent, product_list, refresh, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
-
+        self.refreh = refresh
         # screen adjustments and geometry set
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
@@ -298,15 +299,55 @@ class sepet_window(ctk.CTkToplevel):
         # Set the window's position
         self.geometry(f'{width}x{height}+{x}+{y}')
 
-        for i, product in enumerate(product_list):
-            ctk.CTkLabel(self, text=str(i) + ". " + str(product), font=("Helvetica", 16)).pack(pady=10)
-        buy_button = ctk.CTkButton(self, text="Alışverişi Tamamla", command=self.buy_products)
+        ## yusuf burayı hallet
+        # product = [prod_name, prod_id, price, quantity, total]
+        product_list_all = []
+
+        for prod_id in product_list:
+            flag = False
+            for i, product in enumerate(product_list_all):
+                if product[1] == prod_id:
+                    flag = True
+                    new_product = list(product)
+                    new_product[3] += 1
+
+                    cur.execute("""SELECT calculatetotalamount(%s,%s)""",(new_product[1], new_product[3]))
+                    total_price = cur.fetchone()
+                    
+                    new_product[4] = total_price[0]
+
+                    product_list_all[i] = new_product
+                    break
+            if not flag:
+                cur.execute("""SELECT p.productname, p.productid, p.price FROM products p WHERE %s = p.productid""", (prod_id,))
+                new_prod = cur.fetchone()
+                if new_prod:
+                    new_prod = list(new_prod) + [1] + [new_prod[2]]
+                    product_list_all.append(new_prod)        
+
+        for i, product in enumerate(product_list_all):
+            ctk.CTkLabel(self, text="-" + " "
+                         + str(product[3]) + "x | " 
+                         + str(product[0]) + " - " 
+                         + str(product[4]),
+                         font=("Helvetica", 16), anchor='w').pack(pady=10)
+        buy_button = ctk.CTkButton(self, text="Alışverişi Tamamla", command = lambda: self.buy_products(product_list_all))
         buy_button.pack(pady=10, padx=10, side="right")
             
-    def buy_products(self):
-        # TODO burada alışveriş tamamlanınca onun satın alınanlar listesine eklenmesi gerek.
-        # SQL sorgusu buraya gelecek muhtemelen.
-        print("Bought Products") 
+    def buy_products(self, product_list_all):
+        global global_userid
+        # Satın alma işlemini veritabanında kaydetme
+    
+        for product in product_list_all:
+            # Örnek bir SQL sorgusu, burada 'purchases' tablosu ve sütunlar varsayılan olarak belirlenmiştir.
+            cur.execute("""INSERT INTO sales (userid, productid, quantity, totalamount) VALUES (%s, %s, %s, %s)""",
+                        (global_userid, product[1], product[3], product[4]))
+        
+        # Veritabanı değişikliklerini kaydet
+        conn.commit()
+        self.refreh()
+        self.destroy()
+        
 
 class satin_alinan_window(ctk.CTkToplevel):
     def __init__(self, parent, *args, **kwargs):
@@ -335,26 +376,40 @@ class satin_alinan_window(ctk.CTkToplevel):
             for i, product in enumerate(product_list):
                 ctk.CTkLabel(self, text=str(i) + ". " + str(product), font=("Helvetica", 16)).pack(pady=10)
                 
-        buy_button = ctk.CTkButton(self, text="Kapat")
+        buy_button = ctk.CTkButton(self, text="Kapat", command=self.close_win)
         buy_button.pack(pady=10, padx=10, side="bottom")
+    def close_win(self):
+        self.destroy()
                 
 class ProductBox(ctk.CTkFrame):
-    def __init__(self, parent, product_name, information, price, category, update_sepet_label, *args, **kwargs):
+    def __init__(self, parent, product_id, product_name, information, price, category, stock, seller_id, update_sepet_label, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.update_sepet_label = update_sepet_label
 
-        self.pack_propagate(False)  # Prevents the frame from shrinking to fit its contents
-        self.configure(width=200, height=200)  # Set the size for each product box
+        
+        cur.execute(""" SELECT u.name, u.surname
+                        FROM users u
+                        WHERE %s = u.userid""", (seller_id,))
 
-        ctk.CTkLabel(self, text=product_name, font=("Helvetica", 14, "bold")).pack(pady=(10, 5))
-        ctk.CTkLabel(self, text=information, font=("Helvetica", 10)).pack(pady=(0, 5))
-        ctk.CTkLabel(self, text=f"Price: {price}", font=("Helvetica", 12, "bold")).pack(pady=(5, 10))
+        seller_name = cur.fetchone()
+        
+        self.pack_propagate(False)  # Prevents the frame from shrinking to fit its contents
+        self.configure(width=300, height=300)  # Set the size for each product box
+        self.pd_id = product_id
+        
+        ctk.CTkLabel(self, text=product_name, font=("Helvetica", 14, "bold")).pack(pady=(1))
+        ctk.CTkLabel(self, text=information, font=("Helvetica", 10, "bold")).pack(pady=(1))
+        ctk.CTkLabel(self, text=f"Category: {category}", font=("Helvetica", 10)).pack(pady=(1))
+        ctk.CTkLabel(self, text=f"Stock: {stock}", font=("Helvetica", 10)).pack(pady=(1))
+        ctk.CTkLabel(self, text=f"Seller: {seller_name[0]} {seller_name[1]}", font=("Helvetica", 10)).pack(pady=(1))
+        ctk.CTkLabel(self, text=f"Price: {price}", font=("Helvetica", 12, "bold")).pack(pady=(10))
+        
+        # stock yoksa alttaki butonu disable et
         ctk.CTkButton(self, text="Add to Basket", command=self.add_to_basket).pack(pady=(0, 10))
-        ctk.CTkButton(self, text="Yorumlar", bg_color="transparent").pack(pady=(0, 10))
+        ctk.CTkButton(self, text="Yorumlar", fg_color="transparent", border_color="#565b5e", border_width=2).pack(pady=(0, 10))
 
     def add_to_basket(self):
-        product_name = self.children['!ctklabel'].cget("text")  # Get the product name
-        self.update_sepet_label(product_name)
+        self.update_sepet_label(self.pd_id)
 
 
 # Run the application

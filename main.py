@@ -13,9 +13,9 @@ import psycopg2
 # record, cursor aynı anda kullanmamız lazım
 # ürünlere yıldız eklenecek, onun için agregate kullanan bir fonksiyon yazılması lazım. group by kullanılacak
 
-# kullanıcınn çıkış yapabilmesi gerek
-# hata butonlarını daha minnoş yaparız
-# açıklamalar wrap olması lazım
+# kullanıcınn çıkış yapabilmesi gerek   - DONE
+# hata butonlarını daha minnoş yaparız  - DONE
+# açıklamalar wrap olması lazım         - DONE
 
 
 conn = psycopg2.connect(host = "localhost", port = "5432", database = "hobby_db", user = "postgres", password = "123")
@@ -26,7 +26,6 @@ global_userid = 0
 
 ctk.deactivate_automatic_dpi_awareness()
 ctk.set_widget_scaling(1.3)
-
 
 class MainApplication(ctk.CTk):
     def __init__(self, *args, **kwargs):
@@ -51,31 +50,38 @@ class MainApplication(ctk.CTk):
         self.geometry(f'{width}x{height}+{x}+{y}')
 
     def show_homepage(self):
-        self.homepage = Homepage(self)
+        self.homepage = Homepage(self, self.logout)
         self.homepage.pack()
         self.login_screen.destroy()
+    
+    def logout(self):
+        self.homepage.destroy()
+        self.login_screen = LoginScreen(self, self.show_homepage)
+        self.login_screen.pack()
 
 class Homepage(ctk.CTkFrame):
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, logout, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         global global_username
+        
+        self.logout = logout
         
         # Create a new frame for buttons
         button_frame = ctk.CTkFrame(self)
         button_frame.pack(pady=10, padx=10)  # or use grid() to place this frame
 
         # Place buttons inside the button_frame using grid layout
-        self.profile = ctk.CTkButton(button_frame, text=global_username)
-        self.profile.grid(row=0, column=0, pady=5, padx=5)
+        self.profile = ctk.CTkButton(button_frame, text=global_username, fg_color="transparent", border_width=2, border_color="#454545", hover_color="#595959")
+        self.profile.grid(row=0, column=1, pady=5, padx=5)
 
-        self.cikis = ctk.CTkButton(button_frame, text="Çıkış Yap", fg_color="#CC2222", hover_color="#992222")
-        self.cikis.grid(row=0, column=1, pady=5, padx=5)
+        self.cikis = ctk.CTkButton(button_frame, text="Çıkış Yap", fg_color="#CC2222", hover_color="#992222", command=self.logout_buttton)
+        self.cikis.grid(row=1, column=1, pady=5, padx=5)
 
-        self.sepet = ctk.CTkButton(button_frame, text="Sepet", command=self.open_sepet)
-        self.sepet.grid(row=1, column=0, pady=5, padx=5)
+        self.sepet = ctk.CTkButton(button_frame, text="Sepet", font=("Helvetica", 14, "bold"), command=self.open_sepet)
+        self.sepet.grid(row=0, column=0, pady=5, padx=5)
 
         self.satin_alinan = ctk.CTkButton(button_frame, text="Satın Alınanlar", command=self.open_satin_alinanlar)
-        self.satin_alinan.grid(row=1, column=1, pady=5, padx=5)
+        self.satin_alinan.grid(row=1, column=0, pady=5, padx=5)
         
         search_bar = ctk.CTkEntry(self, width=200, placeholder_text="Ara")
         search_bar.pack(pady=6)
@@ -105,7 +111,14 @@ class Homepage(ctk.CTkFrame):
            
         self.sepet_win = None
         self.satin_alinan_win = None
-
+    
+    def logout_buttton(self):
+        global global_username
+        global global_userid
+        global_username = ""
+        global_userid = 0
+        self.logout()
+      
     def open_satin_alinanlar(self):
         if self.sepet_win is None or not self.sepet_win.winfo_exists():
             self.sepet_win = satin_alinan_window(self)  # create window if its None or destroyed
@@ -117,7 +130,7 @@ class Homepage(ctk.CTkFrame):
     
     def open_sepet(self):
         if self.product_list == []:
-            self.sepet.configure(text="Sepetiniz Boş")
+            self.sepet.configure(text="Sepet Boş ಥ_ಥ",)
             
         else:
             if self.sepet_win is None or not self.sepet_win.winfo_exists():
@@ -165,7 +178,7 @@ class LoginScreen(ctk.CTkFrame):
         self.hata_label.pack(pady=(0,10))
         
         self.register_window = None
-
+    
     def on_register_click(self):
         if self.register_window is None or not self.register_window.winfo_exists():
             self.register_window = register(self)  # create window if its None or destroyed
@@ -188,7 +201,7 @@ class LoginScreen(ctk.CTkFrame):
         info = cur.fetchone()
         
         if info == None:
-            hata.configure(text="Geçersiz Kullanıcı Adı veya Şifre")
+            hata.configure(text="(￣﹃￣) Geçersiz Kullanıcı Adı veya Şifre (￣﹃￣)")
         else:
             global_username = username
             global_userid = info[2]
@@ -279,7 +292,7 @@ class register(ctk.CTkToplevel):
         # Giriş alanlarını kontrol et, herhangi birisi boş olamaz.
         if not all([username, password, name, surname, mail, phone, address, selected_date]):
             print("Hata")
-            self.feedback_label.configure(text="Herhangi Bir Alan Boş Bırakılamaz")
+            self.feedback_label.configure(text="╰（‵□′）╯ Herhangi Bir Alan Boş Bırakılamaz ╰（‵□′）╯")
             return
 
         # Eğer tüm alanlar doluysa, bilgileri yazdır
@@ -406,7 +419,7 @@ class satin_alinan_window(ctk.CTkToplevel):
         sales_list = cur.fetchall()
         
         if sales_list == []:
-            hata_label.configure(text="Boş Liste")
+            hata_label.configure(text="＞﹏＜ Henüz Alışveriş Yapmadınız.. ＞﹏＜")
         else:
             main = ctk.CTkScrollableFrame(self, 
                                                border_width=1, 
@@ -444,21 +457,21 @@ class ProductBox(ctk.CTkFrame):
         seller_name = cur.fetchone()
         
         self.pack_propagate(False)  # Prevents the frame from shrinking to fit its contents
-        self.configure(width=300, height=300)  # Set the size for each product box
+        self.configure(width=300, height=280)  # Set the size for each product box
         self.pd_id = product_id
         
         # productımızın ortalama yıldızını hesaplayan SQL fonksiyonu
         
-        ctk.CTkLabel(self, text=product_name, font=("Helvetica", 14, "bold")).pack(pady=(1))
-        ctk.CTkLabel(self, text=information, font=("Helvetica", 10, "bold")).pack(pady=(1))
-        ctk.CTkLabel(self, text=f"Category: {category}", font=("Helvetica", 10)).pack(pady=(1))
-        ctk.CTkLabel(self, text=f"Stock: {stock}", font=("Helvetica", 10)).pack(pady=(1))
-        ctk.CTkLabel(self, text=f"Seller: {seller_name[0]} {seller_name[1]}", font=("Helvetica", 10)).pack(pady=(1))
-        ctk.CTkLabel(self, text=f"Price: {price}", font=("Helvetica", 12, "bold")).pack(pady=(10))
-        
+        ctk.CTkLabel(self, text=product_name, font=("Helvetica", 14, "bold"), wraplength=280).pack(pady=(1), fill="x")
+        ctk.CTkLabel(self, text=information, font=("Helvetica", 10, "bold"), anchor="w", wraplength=280).pack(pady=(1), padx=7, fill="x")
+        ctk.CTkLabel(self, text=f"Category: {category}", font=("Helvetica", 10), anchor="w").pack(pady=(1), padx=7, fill="x")
+        ctk.CTkLabel(self, text=f"Stock: {stock}", font=("Helvetica", 10), anchor="w").pack(pady=(1), padx=7, fill="x")
+        ctk.CTkLabel(self, text=f"Seller: {seller_name[0]} {seller_name[1]}", font=("Helvetica", 10), anchor="w").pack(pady=(1), padx=7, fill="x")
+        ctk.CTkLabel(self, text=f"{price} ₺", font=("Helvetica", 18, "bold"), anchor="w").pack(pady=(5), padx=7, fill="x")
+
         # stock yoksa alttaki butonu disable et
-        ctk.CTkButton(self, text="Sepete Ekle", command=self.add_to_basket).pack(pady=(0, 10))
-        ctk.CTkButton(self, text="Yorumlar", fg_color="transparent", border_color="#565b5e", border_width=2).pack(pady=(0, 10))
+        ctk.CTkLabel(self, text="★★★☆☆ | 6.8/10", font=("Helvetica", 14, "bold")).pack(pady=(5), padx=7, fill="x")
+        ctk.CTkButton(self, text="Sepete Ekle", font=("Helvetica", 14, "bold"), command=self.add_to_basket).pack(pady=(0, 10))
 
     def add_to_basket(self):
         self.update_sepet_label(self.pd_id)

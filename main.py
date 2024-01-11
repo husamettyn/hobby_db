@@ -141,9 +141,9 @@ class Homepage(ctk.CTkFrame):
             else:
                 self.sepet_win.focus()
 
-    def update_sepet_label(self, product):
+    def update_sepet_label(self, product_id):
         self.counter += 1
-        self.product_list.append(product)
+        self.product_list.append(product_id)
         self.sepet.configure(text=f"Sepet: {self.counter}")
         # basılan tuştan gelen veriye göre product isimleri bir listede saklanmalı
         
@@ -195,17 +195,18 @@ class LoginScreen(ctk.CTkFrame):
         username = self.username_entry.get()
         password = self.password_entry.get()
         
-        cur.execute(""" SELECT username, password, userid FROM users 
-                        WHERE username = %s AND password = %s""", (username,password))
+        cur.execute("""SELECT username, userid, password 
+                        FROM users WHERE username = %s AND password = %s""", (username, password))
+
         
         info = cur.fetchone()
         
         if info == None:
             hata.configure(text="(￣﹃￣) Geçersiz Kullanıcı Adı veya Şifre (￣﹃￣)")
-        else:
+        elif(info[0] == username and info[2] == password):
             global_username = username
-            global_userid = info[2]
-            self.on_login_success()  # Call the method to switch to the homepage
+            global_userid = info[1]
+            self.on_login_success()
 
 class register(ctk.CTkToplevel):
     def __init__(self, parent, *args, **kwargs):
@@ -319,7 +320,7 @@ class register(ctk.CTkToplevel):
 class sepet_window(ctk.CTkToplevel):
     def __init__(self, parent, product_list, refresh, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
-        self.refreh = refresh
+        self.refresh = refresh
         # screen adjustments and geometry set
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
@@ -331,7 +332,6 @@ class sepet_window(ctk.CTkToplevel):
         # Set the window's position
         self.geometry(f'{width}x{height}+{x}+{y}')
 
-        ## yusuf burayı hallet
         # product = [prod_name, prod_id, price, quantity, total]
         product_list_all = []
 
@@ -385,10 +385,14 @@ class sepet_window(ctk.CTkToplevel):
             # Örnek bir SQL sorgusu, burada 'purchases' tablosu ve sütunlar varsayılan olarak belirlenmiştir.
             cur.execute("""INSERT INTO sales (userid, productid, quantity, totalamount) VALUES (%s, %s, %s, %s)""",
                         (global_userid, product[1], product[3], product[4]))
+            
+            cur.execute("""UPDATE products 
+                           SET stockquantity = stockquantity - %s 
+                           WHERE productid = %s""",(product[3], product[1],))
         
         # Veritabanı değişikliklerini kaydet
         conn.commit()
-        self.refreh()
+        self.refresh()
         self.destroy()
         
 
@@ -448,7 +452,7 @@ class ProductBox(ctk.CTkFrame):
     def __init__(self, parent, product_id, product_name, information, price, category, stock, seller_id, update_sepet_label, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.update_sepet_label = update_sepet_label
-
+        self.stock = stock
         
         cur.execute(""" SELECT u.name, u.surname
                         FROM users u
@@ -464,17 +468,34 @@ class ProductBox(ctk.CTkFrame):
         
         ctk.CTkLabel(self, text=product_name, font=("Helvetica", 14, "bold"), wraplength=280).pack(pady=(1), fill="x")
         ctk.CTkLabel(self, text=information, font=("Helvetica", 10, "bold"), anchor="w", wraplength=280).pack(pady=(1), padx=7, fill="x")
-        ctk.CTkLabel(self, text=f"Category: {category}", font=("Helvetica", 10), anchor="w").pack(pady=(1), padx=7, fill="x")
-        ctk.CTkLabel(self, text=f"Stock: {stock}", font=("Helvetica", 10), anchor="w").pack(pady=(1), padx=7, fill="x")
-        ctk.CTkLabel(self, text=f"Seller: {seller_name[0]} {seller_name[1]}", font=("Helvetica", 10), anchor="w").pack(pady=(1), padx=7, fill="x")
+        ctk.CTkLabel(self, text=f"Kategori: {category}", font=("Helvetica", 10), anchor="w").pack(pady=(1), padx=7, fill="x")
+        
+        self.stock_label = ctk.CTkLabel(self, text=f"Stok: {stock}", font=("Helvetica", 10), anchor="w")
+        self.stock_label.pack(pady=(1), padx=7, fill="x")
+        
+        ctk.CTkLabel(self, text=f"Satıcı: {seller_name[0]} {seller_name[1]}", font=("Helvetica", 10), anchor="w").pack(pady=(1), padx=7, fill="x")
         ctk.CTkLabel(self, text=f"{price} ₺", font=("Helvetica", 18, "bold"), anchor="w").pack(pady=(5), padx=7, fill="x")
 
         # stock yoksa alttaki butonu disable et
         ctk.CTkLabel(self, text="★★★☆☆ | 6.8/10", font=("Helvetica", 14, "bold")).pack(pady=(5), padx=7, fill="x")
-        ctk.CTkButton(self, text="Sepete Ekle", font=("Helvetica", 14, "bold"), command=self.add_to_basket).pack(pady=(0, 10))
+        self.sepete_ekle_button = ctk.CTkButton(self, text="Sepete Ekle", font=("Helvetica", 14, "bold"), command=self.add_to_basket)
+        self.sepete_ekle_button.pack(pady=(0, 10))
+        
+        if stock == 0:
+            self.stock_label.configure(text="Stok Yok.")
+            self.sepete_ekle_button.configure(state = "disabled")
 
     def add_to_basket(self):
-        self.update_sepet_label(self.pd_id)
+        # burda sadece sayı değişsin
+        if self.stock > 0 :
+            self.stock -= 1
+            self.stock_label.configure(text=f"Stok: {self.stock}") 
+            self.update_sepet_label(self.pd_id)
+            if self.stock==0:
+                self.sepete_ekle_button.configure(state = "disabled", text="Stok Yok")
+        else:
+            self.stock_label.configure(text="Stok = 0")       
+        
 
 
 # Run the application

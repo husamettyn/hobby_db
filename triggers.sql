@@ -23,8 +23,8 @@ EXECUTE FUNCTION deleteRelatedComments();
 CREATE OR REPLACE FUNCTION update_purchase_date()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.purchasedate := LOCALTIMESTAMP;
-    RAISE NOTICE 'Purchase date for sale ID % has been updated.', NEW.saleID;
+    -- Yeni satışın satın alma tarihini güncel tarih ve saat ile ayarla
+    NEW.purchasedate := TO_CHAR(CURRENT_TIMESTAMP, 'YYYY-MM-DD HH24:MI');
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

@@ -34,6 +34,33 @@ $$ LANGUAGE plpgsql;
 
 SELECT deleteSale(1, 11);
 
+-- Update or insert comment
+CREATE OR REPLACE FUNCTION update_or_insert_comment(p_saleid integer, p_rate numeric)
+RETURNS BOOLEAN AS $$
+DECLARE
+  comment_cursor CURSOR FOR SELECT * FROM comments WHERE saleid = p_saleid;
+  comment_row comments%ROWTYPE;
+  is_success BOOLEAN := false;
+BEGIN
+  OPEN comment_cursor;
+  FETCH comment_cursor INTO comment_row;
+  
+  IF FOUND THEN
+    -- Satır varsa, güncelle
+    UPDATE comments SET rate = p_rate WHERE saleid = p_saleid;
+    is_success := true;
+  ELSE
+    -- Satır yoksa, ekle
+    INSERT INTO comments(saleid, rate) VALUES (p_saleid, p_rate);
+    is_success := true;
+  END IF;
+  
+  CLOSE comment_cursor;
+  RETURN is_success;
+END;
+$$ LANGUAGE plpgsql;
+
+
 
 
 

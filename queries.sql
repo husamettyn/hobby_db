@@ -170,6 +170,10 @@ SELECT u.name, u.surname
 FROM users u
 WHERE 5 = u.userID;
 
+--VIEW
+CREATE VIEW product_view AS
+SELECT * FROM products;
+
 --AGGREGATION
 --Lists the average rate given to the selected product
 SELECT s.productID, AVG(rate)

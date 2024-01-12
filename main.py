@@ -3,6 +3,7 @@ import customtkinter as ctk
 from tkcalendar import Calendar
 from datetime import datetime, timedelta
 import psycopg2
+from time import sleep
 
 # TODO - rate verme kısmı düzgün çalışmıyor :d
 # TODO - arama kısmının çalışması lazım
@@ -130,7 +131,7 @@ class Homepage(ctk.CTkFrame):
 
     def search(self, product_name):
         if product_name == "":
-            cur.execute("""SELECT * FROM product_view""")
+            cur.execute("""SELECT products.productid, products.sellerid, products.productname, products.description, products.productcategory, products.price, products.stockquantity, products.soldquantity FROM products;""")
         else:
             product_name = "%" + product_name + "%"
             cur.execute("""SELECT * FROM products WHERE productname LIKE %s""", (product_name,))
@@ -175,14 +176,14 @@ class Homepage(ctk.CTkFrame):
     def update_sepet_label(self, product_id):
         self.counter += 1
         self.product_list.append(product_id)
-        self.sepet.configure(text=f"Sepet: {self.counter}")
+        self.sepet.configure(text=f"Sepet: {self.counter}", fg_color="#2f7bb6")
         # basılan tuştan gelen veriye göre product isimleri bir listede saklanmalı
         
     def refresh_homepage(self):
         # Ürün listesini ve sepet sayacını sıfırla
         self.product_list = []
         self.counter = 0
-        self.sepet.configure(text="Sepet")
+        self.sepet.configure(text="Satın Alındı", fg_color="#007700")
         
     def on_update_click(self):
         if self.update_window is None or not self.update_window.winfo_exists():
@@ -483,8 +484,8 @@ class sepet_window(ctk.CTkToplevel):
                          + str(product[0]) + " - " 
                          + str(product[4]),
                          font=("Helvetica", 16), anchor='w').pack(pady=10)
-        buy_button = ctk.CTkButton(self, text="Alışverişi Tamamla", command = lambda: self.buy_products(product_list_all))
-        buy_button.pack(pady=10, padx=10, side="right")
+        self.buy_button = ctk.CTkButton(self, text="Alışverişi Tamamla", command = lambda: self.buy_products(product_list_all))
+        self.buy_button.pack(pady=10, padx=10, side="right")
         info_label = ctk.CTkLabel(self, text="Alışverişleriniz Otomatik Olarak Kaydedilmektedir.")
         info_label.pack(padx=10, side="left")
             
@@ -551,8 +552,9 @@ class satin_alinan_window(ctk.CTkToplevel):
             for product in sales_list:
                 label_frame = ctk.CTkFrame(self.main)
                 label_frame.pack(pady=10, padx=10, fill="x")
-                
-                ctk.CTkButton(label_frame, width=27, text="X", fg_color="#AA0000", command= lambda: self.delete_kayit(product[4])).pack(side = "left", padx=4)
+                p_saleid = product[4]
+                print("for sale: " + str(p_saleid))
+                ctk.CTkButton(label_frame, width=27, text="X", fg_color="#AA0000", command= lambda sale_id=p_saleid: self.delete_kayit(sale_id)).pack(side = "left", padx=4)
                 
                 ctk.CTkLabel(label_frame, text="-" + " "
                          + str(product[1]) + " | " 
@@ -568,7 +570,7 @@ class satin_alinan_window(ctk.CTkToplevel):
                 
                 # Değerlendirme butonu, combobox'tan seçilen değeri alacak
                 rate_button = ctk.CTkButton(label_frame, width=70, text="Değerlendir", fg_color="#007700", 
-                                            command=lambda cb=self.combobox: self.insert_rate(product[4], cb.get()))
+                                            command=lambda cb=self.combobox: self.insert_rate(p_saleid, cb.get()))
                 rate_button.pack(side="right", padx=4)
                 
  
@@ -581,6 +583,9 @@ class satin_alinan_window(ctk.CTkToplevel):
         self.destroy()
                 
     def delete_kayit(self, sale_id):
+        
+        print("fonk: " + str(sale_id))
+        
         cur.execute("""DELETE FROM sales 
                     WHERE saleid = %s""", (sale_id,))
         conn.commit()

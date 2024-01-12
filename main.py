@@ -91,7 +91,7 @@ class Homepage(ctk.CTkFrame):
         search_bar = ctk.CTkEntry(search_frame, width=200, placeholder_text="Ara")
         search_bar.pack(pady=6, padx=6, side="left")
         
-        search_but = ctk.CTkButton(search_frame, text="Ara", command= lambda: self.search_ref(search_bar.get()))
+        search_but = ctk.CTkButton(search_frame, text="Ara", width=50, command= lambda: self.search_ref(search_bar.get()))
         search_but.pack(pady=6, padx=6, side="right")
         
         search_frame.pack()
@@ -123,13 +123,12 @@ class Homepage(ctk.CTkFrame):
         self.sepet_win = None
         self.satin_alinan_win = None
         self.update_window = None
-    
+
     def search(self, product_name):
         if product_name == "":
-            cur.execute("""SELECT products.productid, products.sellerid, products.productname, products.description, products.productcategory, products.price, products.stockquantity, products.soldquantity FROM products;""")
+            cur.execute("""SELECT * FROM get_products_by_name(' ');""")
         else:
-            product_name = "%" + product_name + "%"
-            cur.execute("""SELECT products.productid, products.sellerid, products.productname, products.description, products.productcategory, products.price, products.stockquantity, products.soldquantity FROM products WHERE productname LIKE %s""", (product_name,))
+            cur.execute("""SELECT * FROM get_products_by_name(%s);""", (product_name,))
         return cur.fetchall()
     
     def search_ref(self, product_name):
@@ -340,10 +339,11 @@ class update_user(ctk.CTkToplevel):
         
         global global_userid
         
-        cur.execute("""SELECT email, phonenumber, address, name
+        self.user_id = global_userid
+        cur.execute("""SELECT email, phonenumber, address
                        FROM users WHERE userid = %s""",(global_userid,))
         
-        personal_info = cur.fetchone()
+        self.personal_info = cur.fetchone()
         
         # screen adjustments and geometry set
         screen_width = self.winfo_screenwidth()
@@ -366,19 +366,19 @@ class update_user(ctk.CTkToplevel):
         pass_frame.pack()
         
         mail_frame = ctk.CTkFrame(self)
-        self.mail_entry = ctk.CTkEntry(mail_frame, placeholder_text=f"{personal_info[0]}")
+        self.mail_entry = ctk.CTkEntry(mail_frame, placeholder_text=f"{self.personal_info[0]}")
         self.mail_entry.pack(pady=5, side = "left")
         ctk.CTkButton(mail_frame, text="Güncelle", width=70, command=self.update_mail).pack(side = "right", padx=5)
         mail_frame.pack()
         
         phone_frame = ctk.CTkFrame(self)
-        self.phone_entry = ctk.CTkEntry(phone_frame, placeholder_text=f"{personal_info[1]}")
+        self.phone_entry = ctk.CTkEntry(phone_frame, placeholder_text=f"{self.personal_info[1]}")
         self.phone_entry.pack(pady=5, side = "left")
         ctk.CTkButton(phone_frame, text="Güncelle", width=70, command=self.update_phone).pack(side = "right", padx=5)
         phone_frame.pack()
         
         address_frame = ctk.CTkFrame(self)
-        self.address_entry = ctk.CTkEntry(address_frame, placeholder_text=f"{personal_info[2]}")
+        self.address_entry = ctk.CTkEntry(address_frame, placeholder_text=f"{self.personal_info[2]}")
         self.address_entry.pack(pady=5, side = "left")
         ctk.CTkButton(address_frame, text="Güncelle", width=70, command=self.update_address).pack(side = "right", padx=5)
         address_frame.pack()
@@ -389,46 +389,42 @@ class update_user(ctk.CTkToplevel):
     def update_pass(self):
         password = self.pass_entry.get()
         if not password:
-            print("Hata")
             self.feedback_label.configure(text="╰（‵□′）╯ Alan Boş Bırakılamaz ╰（‵□′）╯")
             return
         
-        cur.execute("""UPDATE users SET password = %s""",(password,))
-
+        cur.execute("""UPDATE users SET password = %s where users.userid = %s""",(password, self.user_id))
         conn.commit()
+        self.feedback_label.configure(text="Şifre Güncellendi")
     
     def update_phone(self):
         phone = self.phone_entry.get()
         if not phone:
-            print("Hata")
             self.feedback_label.configure(text="╰（‵□′）╯ Alan Boş Bırakılamaz ╰（‵□′）╯")
             return
         
-        cur.execute("""UPDATE users SET phonenumber = %s""",(phone,))
-
+        cur.execute("""UPDATE users SET phonenumber = %s where users.userid = %s""",(phone, self.user_id))
         conn.commit()
+        self.feedback_label.configure(text="Telefon No. Güncellendi")
     
     def update_mail(self):
         mail = self.mail_entry.get()
         if not mail:
-            print("Hata")
             self.feedback_label.configure(text="╰（‵□′）╯ Alan Boş Bırakılamaz ╰（‵□′）╯")
             return
         
-        cur.execute("""UPDATE users SET email = %s""",(mail,))
-
+        cur.execute("""UPDATE users SET email = %s where users.userid = %s""",(mail, self.user_id))
         conn.commit()
+        self.feedback_label.configure(text="Mail Güncellendi")
         
     def update_address(self):
         address = self.address_entry.get()
         if not address:
-            print("Hata")
             self.feedback_label.configure(text="╰（‵□′）╯ Alan Boş Bırakılamaz ╰（‵□′）╯")
             return
         
-        cur.execute("""UPDATE users SET address = %s""",(address,))
-
+        cur.execute("""UPDATE users SET address = %s where users.userid = %s""",(address, self.user_id))
         conn.commit()
+        self.feedback_label.configure(text="Adres Güncellendi")
 
 class sepet_window(ctk.CTkToplevel):
     def __init__(self, parent, product_list, refresh, *args, **kwargs):

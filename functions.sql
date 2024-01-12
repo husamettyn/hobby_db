@@ -61,7 +61,26 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-
-
-
-
+CREATE OR REPLACE FUNCTION get_products_by_name(p_productname TEXT)
+RETURNS SETOF product_type AS $$
+BEGIN
+    IF p_productname = ' ' THEN
+        RETURN QUERY
+        SELECT 
+            productid, sellerid, productname, description, 
+            productcategory, price, stockquantity, soldquantity
+        FROM 
+            products;
+    ELSE
+        RETURN QUERY
+        SELECT 
+            productid, sellerid, productname, description, 
+            productcategory, price, stockquantity, soldquantity
+        FROM 
+            products
+        WHERE 
+            productname ILIKE '%' || p_productname || '%' 
+			or productcategory ILIKE '%' || p_productname || '%' ;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;

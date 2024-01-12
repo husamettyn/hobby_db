@@ -3,6 +3,8 @@
 
 -- Delete related comments
 --triggers when a user deletes a sale record
+
+-- USED
 CREATE OR REPLACE FUNCTION deleteRelatedComments()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -19,6 +21,7 @@ ON sales
 FOR EACH ROW 
 EXECUTE FUNCTION deleteRelatedComments();
 
+-- USED
 --Set purchase date of new sale with current date and time
 CREATE OR REPLACE FUNCTION update_purchase_date()
 RETURNS TRIGGER AS $$

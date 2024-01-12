@@ -97,27 +97,22 @@ class Homepage(ctk.CTkFrame):
         search_frame.pack()
 
         # Scrollable container setup
-        product_boxes = ctk.CTkScrollableFrame(self,
+        self.product_boxes = ctk.CTkScrollableFrame(self,
                                                height=350,
                                                width=300,
                                                label_text="Ürünler",
                                                label_anchor="center",
                                                label_font=("Helvetica", 20, "bold"))
-        product_boxes.pack(pady=5, padx=20)
+        self.product_boxes.pack(pady=5, padx=20)
 
         # Product data
         global global_productname
-
-        # burda arama kelimesi global olsun
-        # öyle olunca en başta zaten %% olur, bu class çağrılınca direkt
-        # bütün ürünler gelmiş olur.
-        # arama butonuna basınca da bu classı kapat aç yaparız. Yeni kelimeye göre aramış olur.
         
         product_table = self.search(global_productname)
         
         # Add product boxes to the grid
         for product in product_table:
-            ProductBox(product_boxes, product[0], product[2], product[3], product[5], product[4], product[6], product[1], self.update_sepet_label).pack(pady=10)
+            ProductBox(self.product_boxes, product[0], product[2], product[3], product[5], product[4], product[6], product[1], self.update_sepet_label).pack(pady=10)
                                       #product_id, product_name, information, price, category, stock, seller_id,
 
         self.counter = 0
@@ -128,22 +123,28 @@ class Homepage(ctk.CTkFrame):
         self.sepet_win = None
         self.satin_alinan_win = None
         self.update_window = None
-
+    
     def search(self, product_name):
         if product_name == "":
             cur.execute("""SELECT products.productid, products.sellerid, products.productname, products.description, products.productcategory, products.price, products.stockquantity, products.soldquantity FROM products;""")
         else:
             product_name = "%" + product_name + "%"
-            cur.execute("""SELECT * FROM products WHERE productname LIKE %s""", (product_name,))
+            cur.execute("""SELECT products.productid, products.sellerid, products.productname, products.description, products.productcategory, products.price, products.stockquantity, products.soldquantity FROM products WHERE productname LIKE %s""", (product_name,))
         return cur.fetchall()
     
     def search_ref(self, product_name):
         global global_productname
         global_productname = product_name
         
-        self.destroy()
-        self.__init__(self.parent, self.logout)  
-    
+        # Clear existing product boxes
+        for widget in self.product_boxes.winfo_children():
+            widget.destroy()
+
+        # Fetch and display new product data
+        product_table = self.search(global_productname)
+        for product in product_table:
+            ProductBox(self.product_boxes, product[0], product[2], product[3], product[5], product[4], product[6], product[1], self.update_sepet_label).pack(pady=10)
+        
     def logout_buttton(self):
         global global_username
         global global_userid
@@ -488,7 +489,9 @@ class sepet_window(ctk.CTkToplevel):
         self.buy_button.pack(pady=10, padx=10, side="right")
         info_label = ctk.CTkLabel(self, text="Alışverişleriniz Otomatik Olarak Kaydedilmektedir.")
         info_label.pack(padx=10, side="left")
-            
+        
+        self.info_pop = None    
+        
     def buy_products(self, product_list_all):
         global global_userid
         # Satın alma işlemini veritabanında kaydetme
@@ -506,6 +509,21 @@ class sepet_window(ctk.CTkToplevel):
         conn.commit()
         self.refresh()
         self.destroy()
+        
+        if self.info_pop is None or not self.info_pop.winfo_exists():
+            self.info_pop = info_popup(self)
+            self.info_pop.focus_set() 
+            self.info_pop.grab_set()
+            self.wait_window(self.info_pop)
+        else:
+            self.info_pop.focus()
+        
+# TODO trigger bilgilendirme
+class info_popup(ctk.CTkToplevel):
+    def __init__(self, parent, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+        
+        ctk.CTkLabel(text="Deneme")
         
 class satin_alinan_window(ctk.CTkToplevel):
     def __init__(self, parent, *args, **kwargs):
@@ -553,7 +571,6 @@ class satin_alinan_window(ctk.CTkToplevel):
                 label_frame = ctk.CTkFrame(self.main)
                 label_frame.pack(pady=10, padx=10, fill="x")
                 p_saleid = product[4]
-                print("for sale: " + str(p_saleid))
                 ctk.CTkButton(label_frame, width=27, text="X", fg_color="#AA0000", command= lambda sale_id=p_saleid: self.delete_kayit(sale_id)).pack(side = "left", padx=4)
                 
                 ctk.CTkLabel(label_frame, text="-" + " "
@@ -584,14 +601,13 @@ class satin_alinan_window(ctk.CTkToplevel):
                 
     def delete_kayit(self, sale_id):
         
-        print("fonk: " + str(sale_id))
-        
         cur.execute("""DELETE FROM sales 
                     WHERE saleid = %s""", (sale_id,))
         conn.commit()
 
         self.destroy()
-        self.__init__(self.parent) 
+        self.__init__(self.parent)
+        self.hata_label.configure(text="Ürüne ait yorum silindi (Trigger)\n")
     
     def insert_rate(self, sale_id, rate):
         # rate = self.combobox_1.getvar()

@@ -15,5 +15,5 @@ GROUP BY p.productID
 HAVING AVG(c.rate) > 3
 ORDER BY AVG(c.rate) desc
 
---İstenen kategorideki ürünleri listeler
+--İstenen kategorideki ürünleri lsteler
 SELECT * FROM products WHERE productCategory = 'jewelry';

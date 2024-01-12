@@ -62,14 +62,3 @@ CREATE TABLE IF NOT EXISTS comments(
     REFERENCES sales (saleID) ON DELETE CASCADE
 );
 -- DROP TABLE comments
-
-CREATE TYPE product_type AS (
-    productid INT,
-    sellerid INT,
-    productname VARCHAR(50),
-    description TEXT,
-    productcategory VARCHAR(30),
-    price NUMERIC,
-    stockquantity INT,
-    soldquantity INT
-);

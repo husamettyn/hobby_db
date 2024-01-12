@@ -53,18 +53,6 @@ INSERT INTO products VALUES (nextval('products_seq'), 7, 'sulfur soap', 'good fo
 
 -- DATA FOR SALES TABLE -------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION calculateTotalAmount(p_productID INT,p_quantity INT) 
-RETURNS NUMERIC AS $$
-DECLARE
-  v_price NUMERIC;
-BEGIN
-  SELECT price INTO v_price 
-  FROM products 
-  WHERE productID = p_productID;
-  RETURN v_price * p_quantity;
-END;
-$$ LANGUAGE plpgsql;
-
 -- saleID, userID, productID, purchaseDate, quantity, totalAmount 
 INSERT INTO sales VALUES (nextval('sales_seq'), 11, 3, '2023-12-01 12:55:55', 2, calculateTotalAmount(3, 2));
 INSERT INTO sales VALUES (nextval('sales_seq'), 13, 3, '2023-11-25 14:30:12', 3, calculateTotalAmount(3, 3));

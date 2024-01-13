@@ -324,7 +324,7 @@ class register(ctk.CTkToplevel):
         # Eğer tüm alanlar doluysa, bilgileri yazdır
 
         # DONE buraya SQL sorgusu geldi.
-        query = """INSERT INTO users VALUES (DEFAULT, %s, %s, %s, %s, %s, %s, %s, %s)"""
+        query = """INSERT INTO users VALUES (nextval('users_seq'), %s, %s, %s, %s, %s, %s, %s, %s)"""
         
         record = (username,password,name,surname,selected_date,mail,phone,address)
 

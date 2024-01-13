@@ -519,8 +519,9 @@ class sepet_window(ctk.CTkToplevel):
         for product in product_list_all:
             # Örnek bir SQL sorgusu, burada 'purchases' tablosu ve sütunlar varsayılan olarak belirlenmiştir.
             #           """INSERT INTO users VALUES (nextval('users_seq'), %s, %s, %s, %s, %s, %s, %s, %s)"""
-            cur.execute("""INSERT INTO sales (saleid, userid, productid, quantity, totalamount) VALUES (nextval('sales_seq'), %s, %s, %s, %s)""",
-                        (global_userid, product[1], product[3], product[4]))
+            cur.execute("""INSERT INTO sales (saleid, userid, productid, quantity, totalamount) 
+                                        VALUES (nextval('sales_seq'), %s, %s, %s, %s)""",
+                                        (global_userid, product[1], product[3], product[4]))
             
             cur.execute("""UPDATE products 
                            SET stockquantity = stockquantity - %s 
@@ -679,7 +680,7 @@ class ProductBox(ctk.CTkFrame):
         self.configure(width=300, height=280)  # Set the size for each product box
         self.pd_id = product_id
         
-        cur.execute("""SELECT s.productid,avg(rate)
+        cur.execute("""SELECT s.productid, avg(rate)
                        FROM sales s,comments c
                        WHERE s.saleid = c.saleid AND s.productid = %s
                        GROUP BY s.productid""",(product_id,))

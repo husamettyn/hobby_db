@@ -1,19 +1,3 @@
----SEQUENCES-------------------------------------------------------------
-CREATE SEQUENCE users_seq
-START 1
-INCREMENT 1
-OWNED BY users.userID;
-
-CREATE SEQUENCE products_seq
-START 1
-INCREMENT 1
-OWNED BY products.productID;
-
-CREATE SEQUENCE sales_seq 
-START 1
-INCREMENT 1
-OWNED BY sales.saleID;
-
 -- DATA FOR USERS TABLE -------------------------------------------------------------
 
 -- userID, username,password,name,surname,birthDate,email,phoneNumber,address
@@ -52,18 +36,6 @@ INSERT INTO products VALUES (nextval('products_seq'), 7, 'sulfur soap', 'good fo
 
 
 -- DATA FOR SALES TABLE -------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION calculateTotalAmount(p_productID INT,p_quantity INT) 
-RETURNS NUMERIC AS $$
-DECLARE
-  v_price NUMERIC;
-BEGIN
-  SELECT price INTO v_price 
-  FROM products 
-  WHERE productID = p_productID;
-  RETURN v_price * p_quantity;
-END;
-$$ LANGUAGE plpgsql;
 
 -- saleID, userID, productID, purchaseDate, quantity, totalAmount 
 INSERT INTO sales VALUES (nextval('sales_seq'), 11, 3, '2023-12-01 12:55:55', 2, calculateTotalAmount(3, 2));

@@ -3,7 +3,25 @@ from tkcalendar import Calendar
 from datetime import datetime, timedelta
 import psycopg2
 
+<<<<<<< HEAD
 # Connect to PostgreSQL database
+=======
+# TODO - rate verme kısmı düzgün çalışmıyor :d
+# TODO - arama kısmının çalışması lazım
+
+# DONE - record, cursor aynı anda kullanmamız lazım
+# DONE - UNION
+# DONE - View
+# DONE - Update Delete Insert
+# DONE - kullanıcının adres, telefon gibi bilgilerinin güncellenmesi gerek
+# DONE - ürünlere yıldız eklenecek, onun için agregate kullanan bir fonksiyon yazılması lazım. group by kullanılacak
+# DONE - ürün listelemesinde 0 quantity ürünler disabled button olacak
+# DONE - kullanıcınn çıkış yapabilmesi gerek
+# DONE - hata butonlarını daha minnoş yaparız
+# DONE - açıklamalar wrap olması lazım
+
+
+>>>>>>> d910a0181de856c3dfc63fb13bdfae7a89d62502
 conn = psycopg2.connect(host = "localhost", port = "5432", database = "hobby_db_1", user = "postgres", password = "123")
 cur = conn.cursor()
 
@@ -80,6 +98,11 @@ class Homepage(ctk.CTkFrame):
         
         search_frame.pack()
         
+<<<<<<< HEAD
+=======
+        
+        
+>>>>>>> d910a0181de856c3dfc63fb13bdfae7a89d62502
         # Scrollable container setup
         self.product_boxes = ctk.CTkScrollableFrame(self,
                                                height=350,
@@ -198,7 +221,11 @@ class LoginScreen(ctk.CTkFrame):
         self.password_entry = ctk.CTkEntry(self, show="*", placeholder_text="Şifre")
         self.password_entry.pack(pady=(0, 20))
 
+<<<<<<< HEAD
         # Error label for login related messages
+=======
+
+>>>>>>> d910a0181de856c3dfc63fb13bdfae7a89d62502
         login_button = ctk.CTkButton(self, text="Giriş Yap", hover_color="#2f7bb6",  command=lambda: self.on_login_click())
         login_button.pack()
 
@@ -220,6 +247,10 @@ class LoginScreen(ctk.CTkFrame):
             self.register_window.focus()  # if window exists focus it
 
     def on_login_click(self):
+<<<<<<< HEAD
+=======
+        # Here, add the actual login logic
+>>>>>>> d910a0181de856c3dfc63fb13bdfae7a89d62502
         global global_username
         global global_userid
         username = self.username_entry.get()
@@ -317,7 +348,11 @@ class register(ctk.CTkToplevel):
             self.feedback_label.configure(text="╰（‵□′）╯ Herhangi Bir Alan Boş Bırakılamaz ╰（‵□′）╯")
             return
 
+<<<<<<< HEAD
         # SQL query to insert user
+=======
+        # DONE buraya SQL sorgusu geldi.
+>>>>>>> d910a0181de856c3dfc63fb13bdfae7a89d62502
         query = """INSERT INTO users VALUES (nextval('users_seq'), %s, %s, %s, %s, %s, %s, %s, %s)"""
         
         record = (username,password,name,surname,selected_date,mail,phone,address)
@@ -387,6 +422,7 @@ class update_user(ctk.CTkToplevel):
         self.feedback_label = ctk.CTkLabel(self, text="", text_color="#FF0000")
         self.feedback_label.pack(pady=5)
         
+<<<<<<< HEAD
         # Button for adding a new product
         ctk.CTkButton(self, text=" + Ürün Ekle \^o^/", width=70).pack(pady=10)
         
@@ -395,6 +431,14 @@ class update_user(ctk.CTkToplevel):
 
     def urun_eklerim(self):
         # Open the window for adding a product
+=======
+        ctk.CTkButton(self, text=" + Ürün Ekle \^o^/", width=70).pack(pady=10)
+        
+        self.urun_ekle_window = None 
+        # YAPIYORUM
+
+    def urun_eklerim(self):
+>>>>>>> d910a0181de856c3dfc63fb13bdfae7a89d62502
         if self.urun_ekle_window is None or not self.urun_ekle_window.winfo_exists():
             self.urun_ekle_window = urun_eklerim_window(self)
             self.urun_ekle_window.focus_set() 
@@ -404,7 +448,10 @@ class update_user(ctk.CTkToplevel):
             self.urun_ekle_window.focus()
         pass
     
+<<<<<<< HEAD
     # Update the user's password
+=======
+>>>>>>> d910a0181de856c3dfc63fb13bdfae7a89d62502
     def update_pass(self):
         password = self.pass_entry.get()
         if not password:
@@ -521,6 +568,11 @@ class sepet_window(ctk.CTkToplevel):
         
         # Save the purchase in the database
         for product in product_list_all:
+<<<<<<< HEAD
+=======
+            # Örnek bir SQL sorgusu, burada 'purchases' tablosu ve sütunlar varsayılan olarak belirlenmiştir.
+            #           """INSERT INTO users VALUES (nextval('users_seq'), %s, %s, %s, %s, %s, %s, %s, %s)"""
+>>>>>>> d910a0181de856c3dfc63fb13bdfae7a89d62502
             cur.execute("""INSERT INTO sales (saleid, userid, productid, quantity, totalamount) 
                                         VALUES (nextval('sales_seq'), %s, %s, %s, %s)""",
                                         (global_userid, product[1], product[3], product[4]))
@@ -537,7 +589,11 @@ class sepet_window(ctk.CTkToplevel):
         else:
             self.info_pop.focus()
             
+<<<<<<< HEAD
         # Save database changes
+=======
+        # Veritabanı değişikliklerini kaydet
+>>>>>>> d910a0181de856c3dfc63fb13bdfae7a89d62502
         conn.commit()
         self.refresh()
         self.destroy()
@@ -546,6 +602,7 @@ class info_popup(ctk.CTkToplevel):
     def __init__(self, parent, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         
+<<<<<<< HEAD
         # Screen adjustments and geometry set
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
@@ -560,6 +617,18 @@ class info_popup(ctk.CTkToplevel):
         self.geometry(f'{width}x{height}+{x}+{y}')
         
         # Display label indicating that the purchase trigger is working
+=======
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        width = 100
+        height = 400
+        # Calculate x and y coordinates
+        x = int((screen_width / 2) - (width / 2))
+        y = int((screen_height / 2) - (height / 2))
+        # Set the window's position
+        self.geometry(f'{width}x{height}+{x}+{y}')
+        
+>>>>>>> d910a0181de856c3dfc63fb13bdfae7a89d62502
         ctk.CTkLabel(self, text="Satın Alıma Ait Trigger Çalışmıştır.").pack()
 
 class urun_eklerim_window(ctk.CTkToplevel):
@@ -569,11 +638,17 @@ class urun_eklerim_window(ctk.CTkToplevel):
         screen_height = self.winfo_screenheight()
         width = 200
         height = 200
+<<<<<<< HEAD
         
         # Calculate x and y coordinates
         x = int((screen_width / 2) - (width / 2))
         y = int((screen_height / 2) - (height / 2))
         
+=======
+        # Calculate x and y coordinates
+        x = int((screen_width / 2) - (width / 2))
+        y = int((screen_height / 2) - (height / 2))
+>>>>>>> d910a0181de856c3dfc63fb13bdfae7a89d62502
         # Set the window's position
         self.geometry(f'{width}x{height}+{x}+{y}')
     

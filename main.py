@@ -20,7 +20,7 @@ from time import sleep
 # DONE - açıklamalar wrap olması lazım
 
 
-conn = psycopg2.connect(host = "localhost", port = "5432", database = "hobby_db", user = "postgres", password = "123")
+conn = psycopg2.connect(host = "localhost", port = "5432", database = "hobby_db_1", user = "postgres", password = "123")
 cur = conn.cursor()
 
 global_username = ""
@@ -95,7 +95,9 @@ class Homepage(ctk.CTkFrame):
         search_but.pack(pady=6, padx=6, side="right")
         
         search_frame.pack()
-
+        
+        
+        
         # Scrollable container setup
         self.product_boxes = ctk.CTkScrollableFrame(self,
                                                height=350,
@@ -117,9 +119,10 @@ class Homepage(ctk.CTkFrame):
 
         self.counter = 0
         self.product_list = []
+    
+        self.sepet_hata = ctk.CTkLabel(self, text="", text_color="#FF0000")
+        self.sepet_hata.pack()
         
-        self.sepet_hata = ctk.CTkLabel(self, text="", text_color="#FF0000").pack()
-           
         self.sepet_win = None
         self.satin_alinan_win = None
         self.update_window = None
@@ -141,8 +144,14 @@ class Homepage(ctk.CTkFrame):
 
         # Fetch and display new product data
         product_table = self.search(global_productname)
+        print(product_table)
         for product in product_table:
             ProductBox(self.product_boxes, product[0], product[2], product[3], product[5], product[4], product[6], product[1], self.update_sepet_label).pack(pady=10)
+        
+        if product_table == []:
+            self.sepet_hata.configure(text="Ürün bulunamadı")
+        else:
+            self.sepet_hata.configure(text="")
         
     def logout_buttton(self):
         global global_username
@@ -209,7 +218,7 @@ class LoginScreen(ctk.CTkFrame):
         self.password_entry.pack(pady=(0, 20))
 
 
-        login_button = ctk.CTkButton(self, text="Giriş Yap", hover_color="#2f7bb6",  command=lambda: self.on_login_click(self.hata_label))
+        login_button = ctk.CTkButton(self, text="Giriş Yap", hover_color="#2f7bb6",  command=lambda: self.on_login_click())
         login_button.pack()
 
         register_button = ctk.CTkButton(self, text="Kaydol", fg_color="transparent", border_color="#565b5e", hover_color="#343a3c", border_width=2, command=self.on_register_click)
@@ -229,7 +238,7 @@ class LoginScreen(ctk.CTkFrame):
         else:
             self.register_window.focus()  # if window exists focus it
 
-    def on_login_click(self, hata):
+    def on_login_click(self):
         # Here, add the actual login logic
         global global_username
         global global_userid
@@ -245,7 +254,9 @@ class LoginScreen(ctk.CTkFrame):
         info = cur.fetchone()
         
         if info == None:
-            hata.configure(text="(￣﹃￣) Geçersiz Kullanıcı Adı veya Şifre (￣﹃￣)")
+            self.hata_label.configure(text="(￣﹃￣) Geçersiz Kullanıcı Adı veya Şifre (￣﹃￣)")
+        elif(info[0] != username and info[2] != password):
+            self.hata_label.configure(text="(￣﹃￣) Geçersiz Kullanıcı Adı veya Şifre (￣﹃￣)")
         elif(info[0] == username and info[2] == password):
             global_username = username
             global_userid = info[1]
@@ -321,8 +332,6 @@ class register(ctk.CTkToplevel):
             self.feedback_label.configure(text="╰（‵□′）╯ Herhangi Bir Alan Boş Bırakılamaz ╰（‵□′）╯")
             return
 
-        # Eğer tüm alanlar doluysa, bilgileri yazdır
-
         # DONE buraya SQL sorgusu geldi.
         query = """INSERT INTO users VALUES (nextval('users_seq'), %s, %s, %s, %s, %s, %s, %s, %s)"""
         
@@ -385,7 +394,22 @@ class update_user(ctk.CTkToplevel):
         
         self.feedback_label = ctk.CTkLabel(self, text="", text_color="#FF0000")
         self.feedback_label.pack(pady=5)
+        
+        ctk.CTkButton(self, text=" + Ürün Ekle \^o^/", width=70).pack(pady=10)
+        
+        self.urun_ekle_window = None 
+        # YAPIYORUM
 
+    def urun_eklerim(self):
+        if self.urun_ekle_window is None or not self.urun_ekle_window.winfo_exists():
+            self.urun_ekle_window = urun_eklerim_window(self)
+            self.urun_ekle_window.focus_set() 
+            self.urun_ekle_window.grab_set()
+            self.wait_window(self.urun_ekle_window)
+        else:
+            self.urun_ekle_window.focus()
+        pass
+    
     def update_pass(self):
         password = self.pass_entry.get()
         if not password:
@@ -494,17 +518,13 @@ class sepet_window(ctk.CTkToplevel):
     
         for product in product_list_all:
             # Örnek bir SQL sorgusu, burada 'purchases' tablosu ve sütunlar varsayılan olarak belirlenmiştir.
-            cur.execute("""INSERT INTO sales (userid, productid, quantity, totalamount) VALUES (%s, %s, %s, %s)""",
+            #           """INSERT INTO users VALUES (nextval('users_seq'), %s, %s, %s, %s, %s, %s, %s, %s)"""
+            cur.execute("""INSERT INTO sales (saleid, userid, productid, quantity, totalamount) VALUES (nextval('sales_seq'), %s, %s, %s, %s)""",
                         (global_userid, product[1], product[3], product[4]))
             
             cur.execute("""UPDATE products 
                            SET stockquantity = stockquantity - %s 
                            WHERE productid = %s""",(product[3], product[1],))
-        
-        # Veritabanı değişikliklerini kaydet
-        conn.commit()
-        self.refresh()
-        self.destroy()
         
         if self.info_pop is None or not self.info_pop.winfo_exists():
             self.info_pop = info_popup(self)
@@ -513,14 +533,42 @@ class sepet_window(ctk.CTkToplevel):
             self.wait_window(self.info_pop)
         else:
             self.info_pop.focus()
+            
+        # Veritabanı değişikliklerini kaydet
+        conn.commit()
+        self.refresh()
+        self.destroy()
         
 # TODO trigger bilgilendirme
 class info_popup(ctk.CTkToplevel):
     def __init__(self, parent, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         
-        ctk.CTkLabel(text="Deneme")
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        width = 100
+        height = 400
+        # Calculate x and y coordinates
+        x = int((screen_width / 2) - (width / 2))
+        y = int((screen_height / 2) - (height / 2))
+        # Set the window's position
+        self.geometry(f'{width}x{height}+{x}+{y}')
         
+        ctk.CTkLabel(self, text="Satın Alıma Ait Trigger Çalışmıştır.").pack()
+
+class urun_eklerim_window(ctk.CTkToplevel):
+    def __init__(self, parent, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        width = 200
+        height = 200
+        # Calculate x and y coordinates
+        x = int((screen_width / 2) - (width / 2))
+        y = int((screen_height / 2) - (height / 2))
+        # Set the window's position
+        self.geometry(f'{width}x{height}+{x}+{y}')
+    
 class satin_alinan_window(ctk.CTkToplevel):
     def __init__(self, parent, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
